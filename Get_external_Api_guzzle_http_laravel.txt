@@ -1,0 +1,149 @@
+// cmd*****
+
+composer require guzzlehttp/guzzle
+
+
+// composer.json ************
+
+ "require": {
+        "guzzlehttp/guzzle": "^7.7"
+    },
+
+
+// cmd*****
+
+composer update
+composer dump-autoload
+
+
+
+// route ***********
+
+<?php
+
+use App\Http\Controllers\QuestionController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', [QuestionController::class, 'index'])->name('fetch.index');
+Route::get('/fetch', [QuestionController::class, 'fetchInsert'])->name('fetch.store');
+
+
+// controller ************
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Models\Question;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+
+class QuestionController extends Controller
+{
+
+    public function index()
+    {
+        $data['questions'] = Question::all();
+        return view('questions.index', $data);
+    }
+
+
+    public function fetchInsert()
+    {
+        $response = Http::get('https://quizapi.io/api/v1/questions', [
+            'apiKey' => 'f7h5MFyB8XuFAbAKDQfjLV8eYEvgnXvab9rZ8XO5',
+            'limit' => 10
+        ]);
+        $questions = json_decode($response->body());
+        foreach ($questions as $q) {
+            $question = new Question();
+            $question->question = $q->question;
+            $question->answer_a = $q->answers->answer_a;
+            $question->answer_b = $q->answers->answer_b;
+            $question->answer_c = $q->answers->answer_c;
+            $question->save();
+        }
+        return to_route('fetch.index')->with('msg', 'data inserted Successfully!');
+    }
+}
+
+
+// view ********************
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>External Api</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+    <!-- data table -->
+    <link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css" />
+
+</head>
+
+<body>
+
+    <div class="container mt-4 mb-4">
+        <h2>Get Exernal data by quiz API</h2>
+
+        @if(Session::has('msg'))
+        <div class="alert alert-success">
+            {{Session::get('msg')}}
+        </div>
+        @endif
+
+        <table id="table_id">
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Question</th>
+                    <th scope="col">A1</th>
+                    <th scope="col">A2</th>
+                    <th scope="col">A3</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($questions as $question)
+                <tr>
+                    <td>{{$question->id}}</td>
+                    <th scope="row">{{$question->question}}</th>
+                    <td>{{$question->answer_a}}</td>
+                    <td>{{$question->answer_b}}</td>
+                    <td>{{$question->answer_c}}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js" integrity="sha384-zYPOMqeu1DAVkHiLqWBUTcbYfZ8osu1Nd6Z89ify25QV9guujx43ITvfi12/QExE" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.min.js" integrity="sha384-Y4oOpwW3duJdCWv5ly8SCFYWqFDsfob/3GkgExXKV4idmbt98QcxXYs9UoXAB7BZ" crossorigin="anonymous"></script>
+
+    <!-- data tables -->
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.2.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+    <script>
+        $(function() {
+            $("#table_id").dataTable();
+        });
+    </script>
+
+</body>
+
+</html>
+
